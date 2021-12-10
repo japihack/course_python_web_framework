@@ -13,7 +13,17 @@ home
     <button type="submit" class="btn btn-primary mt-3">Search</button>
 </form>
 <br>
+sales_df
 <h4>{{sales_df | safe}}</h4>
 <br>
+positions_df
 <h4>{{positions_df | safe}}</h4>
+<br>
+merged_df
+<h4>{{merged_df | safe}}</h4>
+<br>
+group by df
+<h4>{{df | safe}}</h4>
+Chart
+<img src="data:image/png;base64, {{chart|safe}}">
 {% endblock content %}

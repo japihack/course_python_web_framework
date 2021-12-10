@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.utils.formats import date_format
 from django.views.generic import ListView, DetailView
-from sales.utils import get_customer_from_id, get_salesman_from_id
+from sales.utils import get_customer_from_id, get_salesman_from_id, get_chart
 from .models import Sale
 from .forms import SalesSearchForm
 import pandas as pd
@@ -11,6 +11,9 @@ def home_view(request):
     form = SalesSearchForm(request.POST or None)
     sales_df = None
     positions_df = None
+    merged_df = None
+    df = None
+    chart = None
 
     if request.method == "POST":
         date_from = request.POST.get('date_from')
@@ -26,7 +29,8 @@ def home_view(request):
             sales_df['created'] = sales_df['created'].apply(lambda x: x.strftime('%Y-%m-%d'))
             sales_df['updated'] = sales_df['updated'].apply(lambda x: x.strftime('%Y-%m-%d'))
             sales_df.rename({'customer_id':'customer', 'salesman_id':'salesman', 'id':'sales_id'}, axis=1, inplace=True)
-            sales_df = sales_df.to_html
+            #sales_df['sales_id'] = sales_df['id']
+            
             positions_data = []
             for sale in sale_qs:
                 for pos in sale.get_positions():
@@ -38,7 +42,17 @@ def home_view(request):
                         'sales_id': pos.get_sales_id(),
                     }
                     positions_data.append(obj)
-            positions_df = pd.DataFrame(positions_data).to_html
+            positions_df = pd.DataFrame(positions_data)
+            merged_df = pd.merge(sales_df,positions_df,on='sales_id')
+
+            df = merged_df.groupby('transaction_id', as_index=False)['price'].agg('sum')
+
+            chart = get_chart(chart_type, df, labels=df['transaction_id'].values)
+
+            positions_df = positions_df.to_html()
+            sales_df = sales_df.to_html()
+            merged_df = merged_df.to_html()
+            df = df.to_html()
         else:
             sales_df = 'No data'    
 
@@ -46,6 +60,9 @@ def home_view(request):
         'form': form,
         'sales_df': sales_df,
         'positions_df': positions_df,
+        'merged_df': merged_df,
+        'df': df,
+        'chart': chart,
         
     }
     return render(request, 'sales/home.html', context)
